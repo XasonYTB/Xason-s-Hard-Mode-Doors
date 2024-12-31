@@ -1,0 +1,97 @@
+local speed = 75            -- Monster's speed when moving to the nodes
+local spawnDelay = 2        -- Delay before the monster starts moving after spawning
+local rayDistance = 150     -- Raycasting distance to detect players
+local updateRate = 0.1      -- Rate at which the raycasting updates (in seconds)
+
+local activeThreads = 0     -- Track the number of active detection threads
+
+-- Function to continuously check for players using raycasting
+local function detectPlayersContinuously(part)
+    local continueDetection = true
+
+    local rayDirections = {
+        Vector3.new(0, 0, -1), -- Forward
+        Vector3.new(0, 0, 1),  -- Backward
+        Vector3.new(1, 0, 0),  -- Right
+        Vector3.new(-1, 0, 0), -- Left
+        Vector3.new(0, 1, 0),  -- Up
+        Vector3.new(0, -1, 0)  -- Down
+    }
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {workspace.CurrentRooms} -- Ignore pathfinding nodes
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+    while continueDetection do
+        for _, direction in ipairs(rayDirections) do
+            local rayResult = workspace:Raycast(part.Position, direction * rayDistance, raycastParams)
+
+            if rayResult then
+                print("Ray hit:", rayResult.Instance:GetFullName(), "Position:", rayResult.Position)
+                local hitPart = rayResult.Instance
+                local character = hitPart and hitPart:FindFirstAncestorOfClass("Model")
+
+                if character and character:FindFirstChild("Humanoid") then
+                    local hiding = character:GetAttribute("Hiding") -- Check if the player is hiding
+                    if hiding then
+                        print("Player detected but hiding. No action taken.")
+                    else
+                        print("Player detected and not hiding. Simulating kill.")
+                    end
+                end
+            end
+        end
+        wait(updateRate)
+    end
+end
+
+-- Main logic for spawning the entity
+local function spawnMonster()
+    local sortedModels = workspace.CurrentRooms:GetChildren()
+
+    if #sortedModels > 0 then
+        local firstModel = sortedModels[1]
+        local entrance = firstModel:FindFirstChild("RoomEntrance")
+        local startPosition = entrance and entrance:IsA("BasePart") and entrance.Position or Vector3.new(0, 0, 0)
+
+        -- Load the monster asset (BlastEntity) dynamically
+        local assetId = "rbxassetid://89338335945009"
+        local loadedAsset = game:GetObjects(assetId)
+        local BlastEntity = loadedAsset and loadedAsset[1] -- Assume the first object in the array is the monster Part
+
+        if BlastEntity and BlastEntity:IsA("BasePart") then
+            BlastEntity.Position = startPosition
+            BlastEntity.Transparency = 1 -- Make the monster invisible
+            BlastEntity.Anchored = true
+            BlastEntity.Parent = workspace
+            print("BlastEntity part loaded and placed at RoomEntrance:", firstModel.Name)
+        else
+            error("Failed to load BlastEntity as a BasePart.")
+        end
+
+        print("Waiting for", spawnDelay, "seconds before starting movement.")
+        wait(spawnDelay)
+
+        -- Start continuous player detection in a separate thread
+        spawn(function()
+            detectPlayersContinuously(BlastEntity)
+        end)
+
+        return BlastEntity
+    end
+
+    return nil
+end
+
+-- Main loop
+while true do
+    local BlastEntity = spawnMonster()
+
+    if BlastEntity then
+        -- Handle the pathfinding and movement in another script (see next)
+        wait(5) -- Example delay before removing the entity
+        BlastEntity:Destroy()
+    end
+
+    wait(5)
+end
