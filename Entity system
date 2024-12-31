@@ -1,3 +1,4 @@
+-- Settings for the monster
 local speed = 75            -- Monster's speed when moving to the nodes
 local spawnDelay = 2        -- Delay before the monster starts moving after spawning
 local rayDistance = 150     -- Raycasting distance to detect players
@@ -45,7 +46,7 @@ local function detectPlayersContinuously(part)
     end
 end
 
--- Main logic for spawning the entity
+-- Function to load and spawn the BlastEntity (Monster)
 local function spawnMonster()
     local sortedModels = workspace.CurrentRooms:GetChildren()
 
@@ -83,15 +84,81 @@ local function spawnMonster()
     return nil
 end
 
--- Main loop
-while true do
-    local BlastEntity = spawnMonster()
-
-    if BlastEntity then
-        -- Handle the pathfinding and movement in another script (see next)
-        wait(5) -- Example delay before removing the entity
-        BlastEntity:Destroy()
+-- Function to get the next node from the custom pathfinding nodes folder
+local function getNextNode(customPathFolder, startIndex)
+    local nodes = customPathFolder and customPathFolder:GetChildren() or {}
+    if #nodes == 0 then
+        print("No nodes found in:", customPathFolder.Name)
+        return nil, startIndex
     end
 
-    wait(5)
+    table.sort(nodes, function(a, b) return a.Name < b.Name end)
+    for i = startIndex + 1, #nodes do
+        return nodes[i], i
+    end
+    return nil, startIndex
+end
+
+-- Function to move the part to a target position at a constant speed
+local function moveToPosition(part, targetPosition, speed)
+    local startPos = part.Position
+    local distance = (startPos - targetPosition).Magnitude
+    local travelTime = distance / speed
+    local startTime = tick()
+
+    while tick() - startTime < travelTime do
+        local progress = (tick() - startTime) / travelTime
+        part.Position = startPos:Lerp(targetPosition, progress)
+        wait()
+    end
+    part.Position = targetPosition
+end
+
+-- Pathfinding movement system that follows nodes
+local function pathfindAndMoveEntity(BlastEntity)
+    -- Get the room's custom pathfinding nodes
+    local currentModel = workspace.CurrentRooms:FindFirstChild("Room1") -- Change this as needed
+    if not currentModel then
+        return
+    end
+
+    -- Get the custom pathfinding folder for the entity
+    local customPathFolder = currentModel:FindFirstChild("EntCustomPathFindingNodes")
+    if not customPathFolder then
+        print("No pathfinding nodes found.")
+        return
+    end
+
+    local nodeIndex = 0
+
+    -- Move through the nodes
+    while customPathFolder do
+        local nextNode, nextIndex = getNextNode(customPathFolder, nodeIndex)
+        if nextNode then
+            print("Moving to node:", nextIndex, "in model:", currentModel.Name)
+            moveToPosition(BlastEntity, nextNode.Position, speed)
+            nodeIndex = nextIndex
+        else
+            -- If there are no more nodes, find the exit and move there
+            local exit = currentModel:FindFirstChild("RoomExit")
+            if exit and exit:IsA("BasePart") then
+                print("Moving to RoomExit of model:", currentModel.Name)
+                moveToPosition(BlastEntity, exit.Position, speed)
+                break
+            end
+        end
+    end
+end
+
+-- Main Script
+while true do
+    -- Spawn the monster and start pathfinding
+    local BlastEntity = spawnMonster()
+    if BlastEntity then
+        -- Start pathfinding with the loaded BlastEntity
+        pathfindAndMoveEntity(BlastEntity)
+        print("Completed all models. Moving forward and despawning.")
+        BlastEntity:Destroy()
+        wait(50)
+    end
 end
