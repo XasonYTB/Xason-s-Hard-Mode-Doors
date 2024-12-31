@@ -1,3 +1,3 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/XasonYTB/Xason-s-Hard-Mode-Doors/refs/heads/main/NodesSystem?token=GHSAT0AAAAAAC35NL63E2LSSRSTIXDAT6V2Z3UG53Q"))()
-loadstring(game:HttpGet("https://raw.githubusercontent.com/XasonYTB/Xason-s-Hard-Mode-Doors/refs/heads/main/Entity%20system?token=GHSAT0AAAAAAC35NL626QYZYW6ZSW4LVXGWZ3UGOXQ"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/XasonYTB/Xason-s-Hard-Mode-Doors/refs/heads/main/NodesSystem"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/XasonYTB/Xason-s-Hard-Mode-Doors/refs/heads/main/Entity%20system"))()
 
