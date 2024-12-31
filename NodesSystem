@@ -1,0 +1,54 @@
+-- Function to get the model with the highest number in its name
+local function getHighestNumberedRoom()
+    local highestNumber = -math.huge
+    local highestModel = nil
+
+    -- Iterate over all models in the CurrentRooms folder
+    for _, model in pairs(workspace.CurrentRooms:GetChildren()) do
+        if model:IsA("Model") and model.Name:match("%d+") then
+            local modelNumber = tonumber(model.Name:match("%d+"))
+            if modelNumber and modelNumber > highestNumber then
+                highestNumber = modelNumber
+                highestModel = model
+            end
+        end
+    end
+    return highestModel
+end
+
+-- Function to clone pathfinding nodes into a custom folder
+local function clonePathfindingNodes(model)
+    local pathfindingNodesFolder = model:FindFirstChild("PathfindNodes")
+    if pathfindingNodesFolder then
+        -- Create a custom folder for cloned nodes if it doesn't exist
+        local customPathFolder = model:FindFirstChild("EntCustomPathFindingNodes")
+        if not customPathFolder then
+            customPathFolder = Instance.new("Folder")
+            customPathFolder.Name = "EntCustomPathFindingNodes"
+            customPathFolder.Parent = model
+        end
+
+        -- Loop through all nodes in the PathfindNodes folder and clone them
+        for _, node in pairs(pathfindingNodesFolder:GetChildren()) do
+            if not customPathFolder:FindFirstChild(node.Name) then
+                local cloneNode = node:Clone()
+                cloneNode.Transparency = 0 -- Make nodes fully visible
+                cloneNode.CanCollide = false -- Ensure they don't interfere with physics
+                cloneNode.Position = cloneNode.Position + Vector3.new(0, 3.2, 0) -- Offset nodes by +3.2 on the Y-axis
+                cloneNode.Parent = customPathFolder
+            end
+        end
+    else
+        warn("No PathfindNodes folder found in model:", model.Name)
+    end
+end
+
+-- Main script to find the highest numbered room and clone its nodes
+local highestRoom = getHighestNumberedRoom()
+
+if highestRoom then
+    print("Cloning pathfinding nodes for room:", highestRoom.Name)
+    clonePathfindingNodes(highestRoom)
+else
+    warn("No room models found in CurrentRooms.")
+end
